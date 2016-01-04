@@ -20,7 +20,6 @@ vector<int> d; // length of tasks
 vector<vector<int> > G; // adjacence list of new graph
 vector<int> Sh;
 vector<int> L;
-vector<int> I;
 
 void step1();
 void step2();
@@ -163,10 +162,9 @@ void step3() {
     }
     if (deltah > LB3) {
         LB3 = deltah;
-        I = Sh;
     }
     h++;
-    if (h <= d.size()){
+    if (h <= n-2){
         printTrace(deltah);
         step1();
     }
