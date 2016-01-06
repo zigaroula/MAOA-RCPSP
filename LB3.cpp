@@ -5,7 +5,7 @@
 using namespace std;
 
 int LB3 = 0;
-int h = 0;
+int h = 1;
 int r = 0;
 
 int m; // number of machines
@@ -132,16 +132,17 @@ void printTrace(int deltah) {
 
 void step1() {
     Sh.clear();
-    r = h;
+    r = h - 1;
     step2();
 }
 
 void step2() {
     int is = -1;
     int s = 0;
-    for (int i = r ; i < L.size() ; i++) {
-        if (intersectionIsNull(L[i])) {
-            is = L[i];
+    for (int i = r ; i < h - 1 + L.size() ; i++) {
+        int i2 = i % L.size();
+        if (intersectionIsNull(L[i2])) {
+            is = L[i2];
             s = i;
             break;
         }
@@ -163,9 +164,9 @@ void step3() {
     if (deltah > LB3) {
         LB3 = deltah;
     }
+    printTrace(deltah);
     h++;
     if (h <= n-2){
-        printTrace(deltah);
         step1();
     }
 }
