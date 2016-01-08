@@ -15,17 +15,20 @@ int n; // number of tasks
 vector<vector<int> > ress; // ressources required
 vector<vector<int> > adjList; // initial adjacence list
 vector<vector<int> > adjMatrix; // initial adjacence matrix
+vector<vector<int> > adjMatrixW; // initial weighted adjacence matrix
+vector<vector<int> > next; // for longest path (next[i][j] is k stated that i->k->j)
 vector<int> d; // length of tasks
 
 vector<vector<int> > G; // adjacence list of new graph
-vector<int> Sh;
-vector<int> L;
+vector<int> Sh; // list of vertices already used
+vector<int> L; // circular list
 
 void step1();
 void step2();
 void step3();
 
-void readValues() { // in
+void readValues() { // initialization and reading of text file
+    // machines properties
     cin >> m;
     for (int i = 0 ; i < m ; i++) {
         int tmp;
@@ -33,6 +36,7 @@ void readValues() { // in
         b.push_back(tmp);
     }
 
+    // tasks properties
     cin >> n;
     for (int i = 0 ; i < n ; i++) {
         int tmp;
@@ -46,8 +50,8 @@ void readValues() { // in
         }
         ress.push_back(tmpvec);
     }
-
     adjMatrix = vector<vector<int> >(n, vector<int>(n, 1000000));
+    adjMatrixW = vector<vector<int> >(n, vector<int>(n, 1000000));
     for (int i = 0 ; i < n ; i++) {
         int degree;
         cin >> degree;
@@ -57,26 +61,57 @@ void readValues() { // in
             cin >> tmp;
             tmpvec.push_back(tmp-1);
             adjMatrix[i][tmp-1] = 1;
+            adjMatrixW[i][tmp-1] = - d[tmp-1];
         }
         adjList.push_back(tmpvec);
     }
+
+    // init
+    next = vector<vector<int> >(n, vector<int>(n, -1));
 }
 
-void floydWarshall() {
+void floydWarshall() { // computes if a path exists between i and j and the longest path between i and j
     for (int i = 0 ; i < n ; i++) {
         for (int j = 0 ; j < n ; j++) {
             for (int k = 0 ; k < n ; k++) {
                 adjMatrix[i][j] = min(adjMatrix[i][j], adjMatrix[i][k] + adjMatrix[k][j]);
+                if (adjMatrixW[i][j] > adjMatrixW[i][k] + adjMatrixW[k][j]) {
+                    adjMatrixW[i][j] = adjMatrixW[i][k] + adjMatrixW[k][j];
+                    next[i][j] = k;
+                }
             }
         }
     }
+}
+
+vector<int> getPath(int i, int j) { // returns longest path between i and j
+
+    // if there is no path or there is no intermediate vertex, returns nothing
+    if (adjMatrixW[i][j] > 0) return vector<int>();
+    int intermediate = next[i][j];
+    if (intermediate < 0) return vector<int>();
+
+    // computes left and right of intermediate
+    vector<int> path1, path2;
+    path1 = getPath(i, intermediate);
+    path2 = getPath(intermediate, j);
+
+    vector<int> result;
+    for (int i = 0 ; i < path1.size() ; i++) {
+        result.push_back(path1[i]);
+    }
+    result.push_back(intermediate);
+    for (int i = 0 ; i < path2.size() ; i++) {
+        result.push_back(path2[i]);
+    }
+    return result;
 }
 
 bool path(int i, int j) { // is there a path from i to j
     return adjMatrix[i][j] != 1000000;
 }
 
-void computeGraph() { // compute new graph
+void computeGraph() { // computes new graph G' (algorithm from the article)
     G = vector<vector<int> >(n);
     for (int i = 1 ; i < n-1 ; i++) {
         for (int j = 1 ; j < n-1 ; j++) {
@@ -99,20 +134,35 @@ void computeGraph() { // compute new graph
     }
 }
 
-void computeList() { // compute L
-    // TODO
-    L.push_back(2);
-    L.push_back(5);
-    L.push_back(9);
-    L.push_back(3);
-    L.push_back(6);
-    L.push_back(8);
-    L.push_back(1);
-    L.push_back(4);
-    L.push_back(7);
+bool compare(const vector<int> &a, const vector<int> &b) { // function used to sort vertices by adjacence degrees
+    return a[1] > b[1];
 }
 
-bool intersectionIsNull(int i) { // check if intersection is null
+void computeList() { // computes L
+    // gets the first elements from the longest path from O to n-1
+    vector<int> pi;
+    pi = getPath(0, n-1);
+    for (int i = 0 ; i < pi.size() ; i++) {
+        L.push_back(pi[i]);
+    }
+
+    // gets the other elements by ordering for nondecreasing values of their degree in G'
+    vector<vector<int> > degrees;
+    for (int i = 0 ; i < G.size() ; i++) {
+        vector<int> tmp;
+        tmp.push_back(i);
+        tmp.push_back(G[i].size());
+        degrees.push_back(tmp);
+    }
+    sort(degrees.begin(), degrees.end(), compare);
+    for (int i = 0 ; i < degrees.size() ; i++) {
+        if (find(L.begin(), L.end(), degrees[i][0]) == L.end() && degrees[i][0] != 0 && degrees[i][0] != n-1) {
+            L.push_back(degrees[i][0]);
+        }
+    }
+}
+
+bool intersectionIsNull(int i) { // checks if intersection is null
     bool res = true;
     for (int j = 0 ; j < G[i].size() ; j++) {
         if (find(Sh.begin(), Sh.end(), G[i][j]) != Sh.end()) {
